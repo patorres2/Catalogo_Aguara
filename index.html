@@ -93,8 +93,7 @@
     position:sticky;
     top:0;
     z-index:20;
-    background:rgba(250,246,236,0.92);
-    backdrop-filter:blur(8px);
+    background:rgba(250,246,236,0.98);
     border-bottom:1px solid var(--line);
     padding:14px 20px;
   }
@@ -332,7 +331,7 @@
     .card-price{font-size:15px;margin-top:2px;}
     .card-actions{flex-direction:column;gap:6px;}
     .btn{padding:8px 8px;font-size:11.5px;}
-    .quick-cat-select{display:block;}
+    .quick-cat-select{display:block;flex:1 1 auto;max-width:none;font-size:11.5px;padding:8px 6px;}
   }
 
   .card{
@@ -556,6 +555,16 @@
     padding:12px 0;
     border-bottom:1px solid var(--line);
   }
+  .cart-remove{
+    background:none;
+    border:none;
+    font-size:16px;
+    cursor:pointer;
+    opacity:0.55;
+    padding:4px;
+    flex-shrink:0;
+  }
+  .cart-remove:hover{opacity:1;}
   .cart-item img{
     width:48px;height:48px;object-fit:cover;border-radius:8px;background:var(--paper-deep);
   }
@@ -703,6 +712,12 @@
     </div>
     <select class="quick-cat-select" id="quickCatSelect">
       <option value="Todos">Todas las categorías</option>
+    </select>
+    <select class="quick-cat-select" id="quickSubcatSelect">
+      <option value="Todas">Todas las subcategorías</option>
+    </select>
+    <select class="quick-cat-select" id="quickBrandSelect">
+      <option value="Todas">Todas las marcas</option>
     </select>
   </div>
 </div>
@@ -881,7 +896,19 @@ function buildFilters(){
     '<option value="'+s+'"'+(s===activeSubcategory?" selected":"")+'>'+s+'</option>'
   ).join("");
 
+  const quickSubSel = document.getElementById("quickSubcatSelect");
+  quickSubSel.innerHTML = subcats.map(s=>
+    '<option value="'+s+'"'+(s===activeSubcategory?" selected":"")+'>'+(s==="Todas"?"Todas las subcategorías":s)+'</option>'
+  ).join("");
+
   const brands = [...new Set(PRODUCTS.map(p=>p.marca).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+
+  const quickBrandSel = document.getElementById("quickBrandSelect");
+  const activeBrandVal = activeBrands.size===1 ? [...activeBrands][0] : "Todas";
+  quickBrandSel.innerHTML = ["Todas", ...brands].map(b=>
+    '<option value="'+b+'"'+(b===activeBrandVal?" selected":"")+'>'+(b==="Todas"?"Todas las marcas":b)+'</option>'
+  ).join("");
+
   const brandEl = document.getElementById("brandList");
   brandEl.innerHTML = "";
   brands.forEach(b=>{
@@ -1023,6 +1050,11 @@ function changeQty(sku, delta){
   updateCartUI();
 }
 
+function removeFromCart(sku){
+  delete CART[sku];
+  updateCartUI();
+}
+
 function updateCartUI(){
   const items = Object.values(CART);
   const count = items.reduce((s,i)=>s+i.qty,0);
@@ -1045,10 +1077,12 @@ function updateCartUI(){
       row.innerHTML =
         (imgSrc ? '<img src="'+imgSrc+'">' : '<div style="width:48px;height:48px;border-radius:8px;background:var(--paper-deep);"></div>') +
         '<div class="cart-item-info"><div class="nm">'+p.nombre+'</div><div class="pr">'+fmtGs(p.precio)+' c/u</div></div>' +
-        '<div class="qty"><button data-a="-1">−</button><span>'+i.qty+'</span><button data-a="1">+</button></div>';
-      row.querySelectorAll("button").forEach(b=>{
+        '<div class="qty"><button data-a="-1">−</button><span>'+i.qty+'</span><button data-a="1">+</button></div>' +
+        '<button class="cart-remove" title="Eliminar">🗑️</button>';
+      row.querySelectorAll(".qty button").forEach(b=>{
         b.onclick = ()=> changeQty(p.sku, parseInt(b.dataset.a,10));
       });
+      row.querySelector(".cart-remove").onclick = ()=> removeFromCart(p.sku);
       itemsEl.appendChild(row);
     });
   }
@@ -1071,8 +1105,16 @@ function consultarProducto(p){
   window.open("https://wa.me/"+WHATSAPP_NUMBER+"?text="+encodeURIComponent(msg), "_blank");
 }
 
-function openCart(){ document.getElementById("cartOverlay").classList.add("open"); }
-function closeCart(){ document.getElementById("cartOverlay").classList.remove("open"); }
+function openCart(){
+  if(document.getElementById("cartOverlay").classList.contains("open")) return;
+  history.pushState({modal:"cart"}, "");
+  document.getElementById("cartOverlay").classList.add("open");
+}
+function closeCart(fromPopstate){
+  const wasOpen = document.getElementById("cartOverlay").classList.contains("open");
+  document.getElementById("cartOverlay").classList.remove("open");
+  if(wasOpen && !fromPopstate && history.state && history.state.modal==="cart") history.back();
+}
 
 let LIGHTBOX_PHOTOS = [];
 let LIGHTBOX_INDEX = 0;
@@ -1085,14 +1127,24 @@ function openLightbox(photos, index, caption){
   document.getElementById("lightboxPrev").style.display = arrows ? "flex" : "none";
   document.getElementById("lightboxNext").style.display = arrows ? "flex" : "none";
   updateLightboxImg();
+  history.pushState({modal:"lightbox"}, "");
   document.getElementById("lightboxOverlay").classList.add("open");
 }
 function updateLightboxImg(){
   document.getElementById("lightboxImg").src = driveImg(LIGHTBOX_PHOTOS[LIGHTBOX_INDEX]);
 }
-function closeLightbox(){
+function closeLightbox(fromPopstate){
+  const wasOpen = document.getElementById("lightboxOverlay").classList.contains("open");
   document.getElementById("lightboxOverlay").classList.remove("open");
+  if(wasOpen && !fromPopstate && history.state && history.state.modal==="lightbox") history.back();
 }
+window.addEventListener("popstate", ()=>{
+  if(document.getElementById("lightboxOverlay").classList.contains("open")){
+    closeLightbox(true);
+  }else if(document.getElementById("cartOverlay").classList.contains("open")){
+    closeCart(true);
+  }
+});
 document.getElementById("lightboxClose").onclick = closeLightbox;
 document.getElementById("lightboxOverlay").onclick = (e)=>{
   if(e.target.id==="lightboxOverlay") closeLightbox();
@@ -1114,6 +1166,17 @@ document.getElementById("subcatSelect").addEventListener("change", (e)=>{ active
 document.getElementById("quickCatSelect").addEventListener("change", (e)=>{
   activeCategory = e.target.value;
   activeSubcategory = "Todas";
+  buildFilters();
+  render();
+});
+document.getElementById("quickSubcatSelect").addEventListener("change", (e)=>{
+  activeSubcategory = e.target.value;
+  document.getElementById("subcatSelect").value = e.target.value;
+  render();
+});
+document.getElementById("quickBrandSelect").addEventListener("change", (e)=>{
+  activeBrands.clear();
+  if(e.target.value !== "Todas") activeBrands.add(e.target.value);
   buildFilters();
   render();
 });
