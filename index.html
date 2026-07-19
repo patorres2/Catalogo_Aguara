@@ -290,6 +290,45 @@
     .filters-aside.open{display:flex;}
   }
 
+  @media(max-width:640px){
+    .grid{
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+    }
+    .card-body{
+      padding:10px 10px 12px;
+      gap:4px;
+    }
+    .card-cat{font-size:10px;}
+    .card-name{
+      font-size:12.5px;
+      min-height:32px;
+      -webkit-line-clamp:2;
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+    .card-desc{display:none;}
+    .card-price{font-size:15px;margin-top:2px;}
+    .card-actions{flex-direction:column;gap:6px;}
+    .btn{padding:8px 8px;font-size:11.5px;}
+    .quick-cat-select{display:block;}
+  }
+
+  .quick-cat-select{
+    display:none;
+    flex:0 0 auto;
+    padding:9px 10px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink);
+    max-width:130px;
+  }
+
   .grid{
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
@@ -661,6 +700,9 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" type="text" placeholder="Buscar producto o marca...">
     </div>
+    <select class="quick-cat-select" id="quickCatSelect">
+      <option value="Todos">Todas las categorías</option>
+    </select>
   </div>
 </div>
 
@@ -825,6 +867,11 @@ function buildFilters(){
     btn.onclick = ()=>{ activeCategory = c; activeSubcategory = "Todas"; buildFilters(); render(); };
     catEl.appendChild(btn);
   });
+
+  const quickSel = document.getElementById("quickCatSelect");
+  quickSel.innerHTML = cats.map(c=>
+    '<option value="'+c+'"'+(c===activeCategory?" selected":"")+'>'+(c==="Todos"?"Todas las categorías":c)+'</option>'
+  ).join("");
 
   const relevant = activeCategory==="Todos" ? PRODUCTS : PRODUCTS.filter(p=>p.categoria===activeCategory);
   const subcats = ["Todas", ...new Set(relevant.map(p=>p.subcategoria).filter(Boolean))];
@@ -1063,6 +1110,12 @@ document.getElementById("cartClose").onclick = closeCart;
 document.getElementById("cartOverlay").onclick = (e)=>{ if(e.target.id==="cartOverlay") closeCart(); };
 document.getElementById("searchInput").addEventListener("input", render);
 document.getElementById("subcatSelect").addEventListener("change", (e)=>{ activeSubcategory = e.target.value; render(); });
+document.getElementById("quickCatSelect").addEventListener("change", (e)=>{
+  activeCategory = e.target.value;
+  activeSubcategory = "Todas";
+  buildFilters();
+  render();
+});
 document.getElementById("priceMin").addEventListener("input", render);
 document.getElementById("priceMax").addEventListener("input", render);
 document.getElementById("filtersToggle").addEventListener("click", ()=>{
