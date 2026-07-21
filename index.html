@@ -302,6 +302,23 @@
     color:var(--ink);
     max-width:130px;
   }
+  .quick-reset-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    flex:0 0 auto;
+    padding:9px 14px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .quick-reset-btn:hover{color:var(--danger);border-color:var(--danger);}
 
   .grid{
     display:grid;
@@ -332,6 +349,7 @@
     .card-actions{flex-direction:column;gap:6px;}
     .btn{padding:8px 8px;font-size:11.5px;}
     .quick-cat-select{display:block;flex:1 1 auto;max-width:none;font-size:11.5px;padding:8px 6px;}
+    .quick-reset-btn{flex:1 1 auto;font-size:11.5px;padding:8px 6px;justify-content:center;}
   }
 
   .card{
@@ -719,6 +737,7 @@
     <select class="quick-cat-select" id="quickBrandSelect">
       <option value="Todas">Todas las marcas</option>
     </select>
+    <button class="quick-reset-btn" id="quickClearFilters" title="Restablecer filtros">↺ Restablecer</button>
   </div>
 </div>
 
@@ -1185,7 +1204,7 @@ document.getElementById("priceMax").addEventListener("input", render);
 document.getElementById("filtersToggle").addEventListener("click", ()=>{
   document.getElementById("filtersAside").classList.toggle("open");
 });
-document.getElementById("clearFilters").addEventListener("click", ()=>{
+function resetAllFilters(){
   activeCategory = "Todos";
   activeSubcategory = "Todas";
   activeBrands.clear();
@@ -1194,7 +1213,9 @@ document.getElementById("clearFilters").addEventListener("click", ()=>{
   document.getElementById("priceMax").value = "";
   buildFilters();
   render();
-});
+}
+document.getElementById("clearFilters").addEventListener("click", resetAllFilters);
+document.getElementById("quickClearFilters").addEventListener("click", resetAllFilters);
 document.getElementById("footWa").href = "https://wa.me/"+WHATSAPP_NUMBER+"?text="+encodeURIComponent("Hola! Tengo una consulta sobre productos de Aguará Librería.");
 document.getElementById("controlsLogo").src = document.querySelector(".hero-logo").src;
 
