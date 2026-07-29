@@ -700,11 +700,22 @@
   .lightbox-arrow.next{right:18px;}
   .lightbox-caption{
     position:absolute;
-    bottom:18px;left:0;right:0;
+    bottom:0;left:0;right:0;
     text-align:center;
     color:#fff;
-    font-size:13px;
-    opacity:0.8;
+    padding:14px 60px 18px;
+    background:linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+  }
+  .lightbox-title{
+    font-family:'Fraunces',serif;
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  .lightbox-desc{
+    font-size:12.5px;
+    line-height:1.4;
+    opacity:0.85;
   }
 </style>
 </head>
@@ -997,7 +1008,7 @@ function renderCard(p){
     img.src = driveImg(p.photos[galleryIndex[p.sku]]);
     img.alt = p.nombre;
     img.style.cursor = "zoom-in";
-    img.onclick = (e)=>{ e.stopPropagation(); openLightbox(p.photos, galleryIndex[p.sku], p.nombre); };
+    img.onclick = (e)=>{ e.stopPropagation(); openLightbox(p.photos, galleryIndex[p.sku], p.nombre, p.desc); };
     media.appendChild(img);
 
     if(p.photos.length>1){
@@ -1138,10 +1149,12 @@ function closeCart(fromPopstate){
 let LIGHTBOX_PHOTOS = [];
 let LIGHTBOX_INDEX = 0;
 
-function openLightbox(photos, index, caption){
+function openLightbox(photos, index, caption, desc){
   LIGHTBOX_PHOTOS = photos;
   LIGHTBOX_INDEX = index || 0;
-  document.getElementById("lightboxCaption").textContent = caption || "";
+  const capEl = document.getElementById("lightboxCaption");
+  capEl.innerHTML = (caption ? '<div class="lightbox-title">'+caption+'</div>' : '') +
+                     (desc ? '<div class="lightbox-desc">'+desc+'</div>' : '');
   const arrows = LIGHTBOX_PHOTOS.length > 1;
   document.getElementById("lightboxPrev").style.display = arrows ? "flex" : "none";
   document.getElementById("lightboxNext").style.display = arrows ? "flex" : "none";
