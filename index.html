@@ -758,6 +758,13 @@
   .brand-tile[hidden]{display:none;}
   .brands-close{white-space:nowrap;flex-shrink:0;}
   @media (max-width:640px){ .brands-close{padding:8px 11px;font-size:12px;} .brands-top{gap:8px;} .brands-logo{height:40px;width:40px;} }
+
+  .page-loader{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:70px 20px;color:var(--ink-soft);text-align:center;}
+  .page-loader p{margin:0;font-size:17px;font-weight:600;color:var(--ink);}
+  .page-loader small{font-size:12.5px;}
+  .spinner{width:38px;height:38px;border-radius:50%;border:4px solid var(--paper-deep);border-top-color:var(--teal);animation:spin .9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .brands-loading{grid-column:1/-1;}
 </style>
 </head>
 <body>
@@ -831,7 +838,7 @@
       <button class="clear-filters" id="clearFilters">Limpiar filtros</button>
     </aside>
     <div class="main-col">
-      <div id="grid" class="grid"></div>
+      <div id="grid" class="grid"><div class="page-loader" id="pageLoader" role="status" aria-live="polite"><div class="spinner"></div><p>Cargando catálogo…</p><small>Esto puede tardar unos segundos</small></div></div>
     </div>
   </div>
 </div>
@@ -958,8 +965,10 @@ async function loadCatalog(){
     statusEl.textContent = PRODUCTS.length + " productos disponibles";
     buildFilters();
     render();
+    if(!document.getElementById("brandsPanel").hidden) openBrands();   // si Marcas estaba abierto esperando, se completa ahora
   }catch(err){
     console.error(err);
+    if(!document.getElementById("brandsPanel").hidden) document.getElementById("brandsGrid").innerHTML = '<div class="error-box brands-loading"><h3>No pudimos cargar las marcas</h3><p>Probá recargar la página en un momento.</p></div>';
     document.getElementById("grid").innerHTML = "";
     statusEl.innerHTML = "";
     document.getElementById("grid").innerHTML =
@@ -1311,6 +1320,13 @@ function resetAllFilters(){
 // Para mostrar el logo de una marca, agregá  "Marca": "ID_DE_ARCHIVO_EN_DRIVE"  acá (el nombre debe ser igual al de la planilla).
 const BRAND_LOGOS = {};
 function openBrands(){
+  if(!PRODUCTS.length){
+    const g = document.getElementById("brandsGrid");
+    g.innerHTML = '<div class="page-loader brands-loading"><div class="spinner"></div><p>Cargando marcas…</p><small>Estamos cargando el catálogo, un momento</small></div>';
+    document.getElementById("brandsPanel").hidden = false;
+    document.body.style.overflow = "hidden";
+    return;
+  }
   const counts = {};
   PRODUCTS.forEach(p=>{ if(p.marca) counts[p.marca]=(counts[p.marca]||0)+1; });
   const grid = document.getElementById("brandsGrid");
