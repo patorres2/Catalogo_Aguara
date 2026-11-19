@@ -724,6 +724,31 @@
   .sort-box select{padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-family:inherit;font-size:12.5px;color:inherit;cursor:pointer;}
   .sort-box select:focus{outline:none;border-color:var(--teal);}
   @media (max-width:760px){ .results-bar{justify-content:flex-start;} .sort-box{font-size:11.5px;} .sort-box select{font-size:11.5px;padding:7px 10px;} }
+
+  .brands-btn{
+    flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;
+    border:1px solid var(--teal);background:var(--teal);color:#fff;font-family:inherit;font-size:12.5px;font-weight:700;
+    cursor:pointer;white-space:nowrap;letter-spacing:.02em;
+  }
+  .brands-btn:hover{background:var(--teal-deep);border-color:var(--teal-deep);}
+  .brands-panel{position:fixed;inset:0;z-index:80;background:var(--paper);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .brands-panel[hidden]{display:none;}
+  .brands-inner{max-width:1100px;margin:0 auto;padding:22px 20px 60px;}
+  .brands-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:10px;margin-bottom:22px;}
+  .brands-head h2{margin:0;font-size:26px;color:var(--ink);}
+  .brands-close{border:1px solid var(--line);background:#fff;color:var(--ink-soft);border-radius:999px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+  .brands-close:hover{color:var(--danger);border-color:var(--danger);}
+  .brands-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
+  .brand-tile{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 12px;min-height:130px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;
+    cursor:pointer;font-family:inherit;color:var(--ink);transition:box-shadow .15s,border-color .15s,transform .15s;
+  }
+  .brand-tile:hover{border-color:var(--teal);box-shadow:var(--shadow);transform:translateY(-2px);}
+  .brand-tile img{max-width:100%;max-height:64px;object-fit:contain;}
+  .brand-tile .brand-name{font-weight:700;font-size:15px;line-height:1.2;}
+  .brand-tile .brand-count{font-size:11.5px;color:var(--ink-soft);}
+  @media (max-width:640px){ .brands-grid{grid-template-columns:repeat(2,1fr);gap:10px;} .brands-btn{padding:8px 12px;font-size:11.5px;} .brands-head h2{font-size:22px;} .brand-tile{min-height:110px;} }
 </style>
 </head>
 <body>
@@ -746,6 +771,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="searchInput" type="text" placeholder="Buscar producto o marca...">
     </div>
+    <button class="brands-btn" id="brandsBtn" type="button">Marcas</button>
     <select class="quick-cat-select" id="quickCatSelect">
       <option value="Todos">Todas las categorías</option>
     </select>
@@ -832,6 +858,12 @@
   ¿Tenés dudas sobre algún producto? <a id="footWa" href="#" target="_blank">Escribinos por WhatsApp</a>
 </div>
 
+<div class="brands-panel" id="brandsPanel" hidden role="dialog" aria-label="Marcas">
+  <div class="brands-inner">
+    <div class="brands-head"><h2>Marcas</h2><button class="brands-close" id="brandsClose" type="button">✕ Cerrar</button></div>
+    <div class="brands-grid" id="brandsGrid"></div>
+  </div>
+</div>
 <script>
 const CATALOG_API_URL = "https://script.google.com/macros/s/AKfycbz9kUomDt1gRDLzKVe95GxEo5PMKkWp4rxpSuct5cbPYYOOUFzTRhooBqdNIY4sQ8vr/exec";
 const WHATSAPP_NUMBER = "595981501867";
@@ -1256,6 +1288,48 @@ function resetAllFilters(){
   buildFilters();
   render();
 }
+
+// ---- Marcas: panel con todas las marcas; al elegir una se filtran sus productos ----
+// Para mostrar el logo de una marca, agregá  "Marca": "ID_DE_ARCHIVO_EN_DRIVE"  acá (el nombre debe ser igual al de la planilla).
+const BRAND_LOGOS = {};
+function openBrands(){
+  const counts = {};
+  PRODUCTS.forEach(p=>{ if(p.marca) counts[p.marca]=(counts[p.marca]||0)+1; });
+  const grid = document.getElementById("brandsGrid");
+  grid.innerHTML = "";
+  Object.keys(counts).sort((a,b)=>a.localeCompare(b)).forEach(b=>{
+    const t = document.createElement("button");
+    t.type = "button"; t.className = "brand-tile";
+    if(BRAND_LOGOS[b]){
+      const img = document.createElement("img");
+      img.src = driveImg(BRAND_LOGOS[b]); img.alt = b; img.loading = "lazy";
+      img.onerror = ()=> img.remove();
+      t.appendChild(img);
+    }
+    const n = document.createElement("span"); n.className = "brand-name"; n.textContent = b; t.appendChild(n);
+    const c = document.createElement("span"); c.className = "brand-count";
+    c.textContent = counts[b] + (counts[b]===1 ? " producto" : " productos"); t.appendChild(c);
+    t.onclick = ()=> selectBrand(b);
+    grid.appendChild(t);
+  });
+  document.getElementById("brandsPanel").hidden = false;
+  document.body.style.overflow = "hidden";
+  document.getElementById("brandsPanel").scrollTop = 0;
+}
+function closeBrands(){
+  document.getElementById("brandsPanel").hidden = true;
+  document.body.style.overflow = "";
+}
+function selectBrand(b){
+  activeBrands.clear(); activeBrands.add(b);
+  activeCategory = "Todos"; activeSubcategory = "Todas";
+  buildFilters(); render(); closeBrands();
+  const st = document.getElementById("statusLine");
+  if(st) st.scrollIntoView({behavior:"smooth", block:"start"});
+}
+document.getElementById("brandsBtn").addEventListener("click", openBrands);
+document.getElementById("brandsClose").addEventListener("click", closeBrands);
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !document.getElementById("brandsPanel").hidden) closeBrands(); });
 document.getElementById("clearFilters").addEventListener("click", resetAllFilters);
 document.getElementById("quickClearFilters").addEventListener("click", resetAllFilters);
 document.getElementById("footWa").href = "https://wa.me/"+WHATSAPP_NUMBER+"?text="+encodeURIComponent("Hola! Tengo una consulta sobre productos de Aguará Librería.");
