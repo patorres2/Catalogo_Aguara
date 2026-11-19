@@ -717,6 +717,13 @@
     line-height:1.4;
     opacity:0.85;
   }
+
+  .results-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;}
+  .results-bar .status-line{margin:0;}
+  .sort-box{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted,#6b6b6b);font-weight:600;}
+  .sort-box select{padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-family:inherit;font-size:12.5px;color:inherit;cursor:pointer;}
+  .sort-box select:focus{outline:none;border-color:var(--teal);}
+  @media (max-width:760px){ .results-bar{justify-content:flex-start;} .sort-box{font-size:11.5px;} .sort-box select{font-size:11.5px;padding:7px 10px;} }
 </style>
 </head>
 <body>
@@ -753,7 +760,16 @@
 </div>
 
 <div class="wrap">
-  <div id="statusLine" class="status-line">Cargando catálogo...</div>
+  <div class="results-bar">
+    <div id="statusLine" class="status-line">Cargando catálogo...</div>
+    <label class="sort-box" for="sortSelect">Ordenar por
+      <select id="sortSelect">
+        <option value="relevancia">Relevancia</option>
+        <option value="precio-desc">Precio: mayor a menor</option>
+        <option value="precio-asc">Precio: menor a mayor</option>
+      </select>
+    </label>
+  </div>
   <button class="filters-toggle" id="filtersToggle">Filtros ⚙</button>
   <div class="layout">
     <aside class="filters-aside" id="filtersAside">
@@ -873,9 +889,10 @@ async function loadCatalog(){
     const rows = await res.json();
     console.log("Catálogo — primer producto recibido:", rows[0]);
 
-    PRODUCTS = rows.map(r => {
+    PRODUCTS = rows.map((r,i) => {
       const sku = skuKey(getVal(r,"sku"));
       return {
+        idx: i,
         sku: sku,
         nombre: getVal(r,"nombre").toString().trim(),
         categoria: (getVal(r,"categoria").toString().trim()) || "Otros",
@@ -981,6 +998,16 @@ function render(){
     (priceMax===null || p.precio<=priceMax) &&
     matchesSearch(p,q)
   );
+  const sortMode = document.getElementById("sortSelect").value;
+  const stockRank = p => p.stock.level==="no" ? 2 : (p.stock.level==="low" ? 1 : 0);
+  list.sort((a,b)=>{
+    if(stockRank(a)===2 && stockRank(b)!==2) return 1;   // sin stock siempre al final
+    if(stockRank(b)===2 && stockRank(a)!==2) return -1;
+    if(sortMode==="precio-asc")  return (a.precio-b.precio) || (a.idx-b.idx);
+    if(sortMode==="precio-desc") return (b.precio-a.precio) || (a.idx-b.idx);
+    // relevancia: disponibles primero, con foto antes que sin foto, luego orden de la planilla
+    return (stockRank(a)-stockRank(b)) || ((b.photos.length>0)-(a.photos.length>0)) || (a.idx-b.idx);
+  });
   grid.innerHTML = "";
   if(list.length===0){
     grid.innerHTML = '<div class="loading">No encontramos productos con esos filtros.</div>';
@@ -1194,6 +1221,7 @@ document.getElementById("cartFab").onclick = openCart;
 document.getElementById("cartClose").onclick = closeCart;
 document.getElementById("cartOverlay").onclick = (e)=>{ if(e.target.id==="cartOverlay") closeCart(); };
 document.getElementById("searchInput").addEventListener("input", render);
+document.getElementById("sortSelect").addEventListener("change", render);
 document.getElementById("subcatSelect").addEventListener("change", (e)=>{ activeSubcategory = e.target.value; render(); });
 document.getElementById("quickCatSelect").addEventListener("change", (e)=>{
   activeCategory = e.target.value;
@@ -1224,6 +1252,7 @@ function resetAllFilters(){
   document.getElementById("searchInput").value = "";
   document.getElementById("priceMin").value = "";
   document.getElementById("priceMax").value = "";
+  document.getElementById("sortSelect").value = "relevancia";
   buildFilters();
   render();
 }
