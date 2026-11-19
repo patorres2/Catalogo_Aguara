@@ -749,6 +749,15 @@
   .brand-tile .brand-name{font-weight:700;font-size:15px;line-height:1.2;}
   .brand-tile .brand-count{font-size:11.5px;color:var(--ink-soft);}
   @media (max-width:640px){ .brands-grid{grid-template-columns:repeat(2,1fr);gap:10px;} .brands-btn{padding:8px 12px;font-size:11.5px;} .brands-head h2{font-size:22px;} .brand-tile{min-height:110px;} }
+
+  .brands-top{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .brands-logo{height:48px;width:48px;object-fit:contain;flex-shrink:0;cursor:pointer;}
+  .brands-top .search-box{flex:1 1 auto;}
+  .brands-empty{color:var(--ink-soft);font-size:14px;margin:0 0 14px;}
+  .brands-empty[hidden]{display:none;}
+  .brand-tile[hidden]{display:none;}
+  .brands-close{white-space:nowrap;flex-shrink:0;}
+  @media (max-width:640px){ .brands-close{padding:8px 11px;font-size:12px;} .brands-top{gap:8px;} .brands-logo{height:40px;width:40px;} }
 </style>
 </head>
 <body>
@@ -860,7 +869,16 @@
 
 <div class="brands-panel" id="brandsPanel" hidden role="dialog" aria-label="Marcas">
   <div class="brands-inner">
-    <div class="brands-head"><h2>Marcas</h2><button class="brands-close" id="brandsClose" type="button">✕ Cerrar</button></div>
+    <div class="brands-top">
+      <img class="brands-logo" id="brandsLogo" alt="Aguará Librería">
+      <div class="search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="brandsSearch" type="text" placeholder="Buscar producto o marca..." autocomplete="off">
+      </div>
+      <button class="brands-close" id="brandsClose" type="button">✕ Cerrar</button>
+    </div>
+    <div class="brands-head"><h2>Marcas</h2></div>
+    <div class="brands-empty" id="brandsEmpty" hidden>No hay marcas con ese nombre. Presioná Enter para buscar productos.</div>
     <div class="brands-grid" id="brandsGrid"></div>
   </div>
 </div>
@@ -1312,6 +1330,8 @@ function openBrands(){
     t.onclick = ()=> selectBrand(b);
     grid.appendChild(t);
   });
+  document.getElementById("brandsSearch").value = "";
+  document.getElementById("brandsEmpty").hidden = true;
   document.getElementById("brandsPanel").hidden = false;
   document.body.style.overflow = "hidden";
   document.getElementById("brandsPanel").scrollTop = 0;
@@ -1333,12 +1353,34 @@ function goHome(){
   resetAllFilters();
   window.scrollTo({top:0, behavior:"smooth"});
 }
-document.querySelectorAll(".hero-logo, #controlsLogo").forEach(el=>{
+document.querySelectorAll(".hero-logo, #controlsLogo, #brandsLogo").forEach(el=>{
   el.style.cursor = "pointer";
   el.setAttribute("role","link"); el.setAttribute("tabindex","0");
   el.setAttribute("title","Ir al inicio"); el.setAttribute("aria-label","Aguará Librería, ir al inicio");
   el.addEventListener("click", goHome);
   el.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); goHome(); } });
+});
+// Buscador dentro de Marcas: filtra las tarjetas al escribir; con Enter busca productos en el catálogo
+const brandsSearch = document.getElementById("brandsSearch");
+brandsSearch.addEventListener("input", ()=>{
+  const q = brandsSearch.value.trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll("#brandsGrid .brand-tile").forEach(t=>{
+    const ok = !q || t.querySelector(".brand-name").textContent.toLowerCase().includes(q);
+    t.hidden = !ok; if(ok) shown++;
+  });
+  document.getElementById("brandsEmpty").hidden = !(q && shown===0);
+});
+brandsSearch.addEventListener("keydown", e=>{
+  if(e.key!=="Enter") return;
+  const q = brandsSearch.value.trim();
+  if(!q) return;
+  activeBrands.clear(); activeCategory = "Todos"; activeSubcategory = "Todas";
+  document.getElementById("priceMin").value = ""; document.getElementById("priceMax").value = "";
+  document.getElementById("searchInput").value = q;
+  buildFilters(); render(); closeBrands();
+  const st = document.getElementById("statusLine");
+  if(st) st.scrollIntoView({behavior:"smooth", block:"start"});
 });
 document.getElementById("brandsBtn").addEventListener("click", openBrands);
 document.getElementById("brandsClose").addEventListener("click", closeBrands);
@@ -1347,6 +1389,7 @@ document.getElementById("clearFilters").addEventListener("click", resetAllFilter
 document.getElementById("quickClearFilters").addEventListener("click", resetAllFilters);
 document.getElementById("footWa").href = "https://wa.me/"+WHATSAPP_NUMBER+"?text="+encodeURIComponent("Hola! Tengo una consulta sobre productos de Aguará Librería.");
 document.getElementById("controlsLogo").src = document.querySelector(".hero-logo").src;
+document.getElementById("brandsLogo").src = document.querySelector(".hero-logo").src;
 
 updateCartUI();
 loadCatalog();
