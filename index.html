@@ -1327,6 +1327,19 @@ function selectBrand(b){
   const st = document.getElementById("statusLine");
   if(st) st.scrollIntoView({behavior:"smooth", block:"start"});
 }
+// ---- Logo de Aguará: vuelve al inicio (limpia filtros, cierra paneles y sube al principio) ----
+function goHome(){
+  if(!document.getElementById("brandsPanel").hidden) closeBrands();
+  resetAllFilters();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+document.querySelectorAll(".hero-logo, #controlsLogo").forEach(el=>{
+  el.style.cursor = "pointer";
+  el.setAttribute("role","link"); el.setAttribute("tabindex","0");
+  el.setAttribute("title","Ir al inicio"); el.setAttribute("aria-label","Aguará Librería, ir al inicio");
+  el.addEventListener("click", goHome);
+  el.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); goHome(); } });
+});
 document.getElementById("brandsBtn").addEventListener("click", openBrands);
 document.getElementById("brandsClose").addEventListener("click", closeBrands);
 document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !document.getElementById("brandsPanel").hidden) closeBrands(); });
